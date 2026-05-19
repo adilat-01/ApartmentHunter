@@ -1,4 +1,11 @@
-const API_BASE = '';
+/** Backend origin; empty = same-origin (Vite dev proxy). Set via VITE_API_URL in production. */
+function normalizeApiBase(raw: string | undefined): string {
+  const trimmed = raw?.trim();
+  if (!trimmed) return '';
+  return trimmed.replace(/\/+$/, '');
+}
+
+export const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL);
 
 const TOKEN_KEY = 'apartment_hunter_token';
 const USER_KEY = 'apartment_hunter_user';
