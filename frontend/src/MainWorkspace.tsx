@@ -690,7 +690,18 @@ export default function MainWorkspace({
 
   useEffect(() => {
     setMobileDrawerOpen(false);
-  }, [activeTab, selectedAptId]);
+  }, [activeTab]);
+
+  const handleSelectApartment = (id: string) => {
+    onSelectApartment(id);
+    if (
+      activeTab === 'dashboard' &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 767px)').matches
+    ) {
+      setMobileDrawerOpen(true);
+    }
+  };
 
   const sidebarPanels =
     activeTab === 'dashboard' &&
@@ -961,7 +972,7 @@ export default function MainWorkspace({
                       return (
                         <article
                           key={apt.id}
-                          onClick={() => onSelectApartment(apt.id)}
+                          onClick={() => handleSelectApartment(apt.id)}
                           className={`rounded-2xl transition-all duration-300 cursor-pointer flex flex-col overflow-hidden relative ${cardStyle}`}
                         >
                           <button

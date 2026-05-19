@@ -136,17 +136,19 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           <div className="flex-1 h-px bg-stone-200" />
         </div>
 
-        <button
-          type="button"
-          onClick={handleDemoLogin}
-          disabled={loading || demoLoading}
-          className="w-full bg-[#ca6a43] hover:bg-[#b85f3c] text-white font-bold text-sm py-2.5 rounded-lg shadow-md transition disabled:opacity-50 flex flex-col items-center gap-1"
-        >
-          <span>{demoLoading ? 'נכנס לדשבורד...' : 'Explore Demo Account'}</span>
-          <span className="text-[10px] font-medium opacity-90">
-            סביבת דמו פרטית לכל מבקר — ללא הרשמה
-          </span>
-        </button>
+        <div className="flex flex-col gap-1.5 w-full">
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading || demoLoading}
+            className="w-full bg-[#ca6a43] hover:bg-[#b85f3c] text-white font-bold text-sm py-2.5 rounded-lg shadow-md transition disabled:opacity-50"
+          >
+            {demoLoading ? 'נכנס לדשבורד...' : 'Explore Demo Account'}
+          </button>
+          <p className="text-center text-[11px] sm:text-xs text-stone-500 font-medium leading-relaxed px-1">
+            סביבת דמו של יוזר פעיל - ללא הרשמה
+          </p>
+        </div>
       </div>
     </div>
   );
