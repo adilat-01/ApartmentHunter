@@ -11,6 +11,7 @@ import {
   deleteApartmentImage,
   fetchApartments,
   authDisplayName,
+  type AuthUser,
   getStoredUser,
   updateApartment,
   uploadApartmentImage,
@@ -90,8 +91,8 @@ function getFeaturedImage(apt: Apartment): ApartmentImage | null {
 }
 
 export default function App() {
-  const [authUser, setAuthUser] = useState(() => getStoredUser());
-  const [authChecked, setAuthChecked] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(true);
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [idealBudget, setIdealBudget] = useState<number>(4000);
   const [maxBudget, setMaxBudget] = useState<number>(5000);

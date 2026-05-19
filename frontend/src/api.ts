@@ -65,6 +65,13 @@ export function getStoredUser(): AuthUser | null {
 export function clearAuth(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+}
+
+/** Wipe auth on every full page load / new tab so users always start at login. */
+export function resetAuthOnPageLoad(): void {
+  clearAuth();
 }
 
 export function saveAuth(token: string, user: AuthUser): void {
