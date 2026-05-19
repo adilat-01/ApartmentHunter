@@ -43,6 +43,12 @@ _PHOTO_BEDROOM = "photo-1522708323590-d24dbb6b0267"
 _PHOTO_BALCONY = "photo-1600607687939-ce8a6c25118c"
 _PHOTO_EXTERIOR = "photo-1600596542815-ffad4c1539a9"
 
+# Rothschild sofa — stable Unsplash (used instead of local rothschild-sofa.jpg)
+_ROTHSCHILD_SOFA_URL = (
+    "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af"
+    "?auto=format&fit=crop&w=600&q=80"
+)
+
 DEMO_APARTMENTS: list[dict] = [
     {
         "created_at": "2026-05-08",
@@ -73,7 +79,7 @@ DEMO_APARTMENTS: list[dict] = [
                 "label": "rothschild-living-room.jpg",
             },
             {
-                "url": _img(_PHOTO_SOFA),
+                "url": _ROTHSCHILD_SOFA_URL,
                 "label": "rothschild-sofa.jpg",
             },
             {
