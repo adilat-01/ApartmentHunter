@@ -28,7 +28,7 @@ from database import (
     init_db,
     parse_extracted_data,
 )
-from seed_demo import create_isolated_demo_session
+from seed_demo import create_isolated_demo_session, repair_legacy_rothschild_images
 
 app = FastAPI(title="ApartmentHunter API")
 
@@ -67,6 +67,13 @@ client = genai.Client(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    from database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        repair_legacy_rothschild_images(db)
+    finally:
+        db.close()
 
 
 # --- Pydantic schemas ---

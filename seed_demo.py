@@ -43,8 +43,8 @@ _PHOTO_BEDROOM = "photo-1522708323590-d24dbb6b0267"
 _PHOTO_BALCONY = "photo-1600607687939-ce8a6c25118c"
 _PHOTO_EXTERIOR = "photo-1600596542815-ffad4c1539a9"
 
-# Rothschild sofa — stable Unsplash (used instead of local rothschild-sofa.jpg)
-_ROTHSCHILD_SOFA_URL = (
+# Rothschild listing — never use local .jpg filenames; stable Unsplash only
+_ROTHSCHILD_UNSPLASH = (
     "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af"
     "?auto=format&fit=crop&w=600&q=80"
 )
@@ -75,16 +75,16 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _img(_PHOTO_LIVING),
-                "label": "rothschild-living-room.jpg",
+                "url": _ROTHSCHILD_UNSPLASH,
+                "label": "rothschild-living-room",
             },
             {
-                "url": _ROTHSCHILD_SOFA_URL,
-                "label": "rothschild-sofa.jpg",
+                "url": _ROTHSCHILD_UNSPLASH,
+                "label": "rothschild-sofa",
             },
             {
-                "url": _img(_PHOTO_KITCHEN),
-                "label": "rothschild-kitchen.jpg",
+                "url": _ROTHSCHILD_UNSPLASH,
+                "label": "rothschild-kitchen",
             },
         ],
     },
@@ -161,6 +161,24 @@ DEMO_APARTMENTS: list[dict] = [
         ],
     },
 ]
+
+
+def repair_legacy_rothschild_images(db: Session) -> int:
+    """Fix DB rows that still point at broken/local rothschild-*.jpg placeholders."""
+    images = (
+        db.query(ApartmentImage)
+        .filter(ApartmentImage.original_filename.like("%rothschild%"))
+        .all()
+    )
+    updated = 0
+    for img in images:
+        if img.external_url != _ROTHSCHILD_UNSPLASH:
+            img.external_url = _ROTHSCHILD_UNSPLASH
+            img.stored_filename = "external"
+            updated += 1
+    if updated:
+        db.commit()
+    return updated
 
 
 def demo_needs_seed(db: Session, user_id: int) -> bool:
