@@ -63,6 +63,7 @@ export interface MainWorkspaceProps {
   activeApartmentDetails: ProcessedApartment | undefined;
   activeFilter: string;
   onActiveFilterChange: (filter: string) => void;
+  archivedCount: number;
   criteria: Criterion[];
   criteriaIcons: Record<string, string>;
   statusOptions: ApartmentStatus[];
@@ -618,6 +619,7 @@ export default function MainWorkspace({
   activeApartmentDetails,
   activeFilter,
   onActiveFilterChange,
+  archivedCount,
   criteria,
   criteriaIcons,
   statusOptions,
@@ -873,8 +875,8 @@ export default function MainWorkspace({
                 </div>
               </div>
 
-              <div className="px-5 pb-1.5 flex gap-1.5 items-center overflow-x-auto">
-                <span className="text-[11px] text-stone-500 font-bold ml-2 font-sans shrink-0">
+              <div className="px-4 md:px-5 pb-1.5 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[11px] text-stone-500 font-bold ml-2 font-sans shrink-0 w-full sm:w-auto">
                   סינון מהיר:
                 </span>
                 <button
@@ -886,29 +888,55 @@ export default function MainWorkspace({
                       : 'bg-white text-stone-700 hover:bg-[#f4ede2]'
                   }`}
                 >
-                  הכל
+                  פעילות
                 </button>
-                {criteria.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => onActiveFilterChange(c.id)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 font-sans shrink-0 ${
-                      activeFilter === c.id
-                        ? 'bg-[#557a46] text-white shadow-sm'
-                        : 'bg-white text-stone-700 hover:bg-[#f4ede2]'
-                    }`}
-                  >
-                    <span>{criteriaIcons[c.id] || '✨'}</span>
-                    <span>{c.label}</span>
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => onActiveFilterChange('archive')}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition font-sans shrink-0 flex items-center gap-1 ${
+                    activeFilter === 'archive'
+                      ? 'bg-stone-700 text-white shadow-sm'
+                      : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200/80'
+                  }`}
+                >
+                  <span>📦</span>
+                  <span>ארכיון / נפסל</span>
+                  {archivedCount > 0 && (
+                    <span
+                      className={`min-w-[1.1rem] h-[1.1rem] px-1 rounded-full text-[9px] flex items-center justify-center ${
+                        activeFilter === 'archive'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-stone-200 text-stone-600'
+                      }`}
+                    >
+                      {archivedCount}
+                    </span>
+                  )}
+                </button>
+                {activeFilter !== 'archive' &&
+                  criteria.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => onActiveFilterChange(c.id)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 font-sans shrink-0 ${
+                        activeFilter === c.id
+                          ? 'bg-[#557a46] text-white shadow-sm'
+                          : 'bg-white text-stone-700 hover:bg-[#f4ede2]'
+                      }`}
+                    >
+                      <span>{criteriaIcons[c.id] || '✨'}</span>
+                      <span>{c.label}</span>
+                    </button>
+                  ))}
               </div>
 
               <section className="px-4 md:px-5 pb-6 pt-1.5 flex-1 overflow-y-auto">
                 {filteredApartments.length === 0 ? (
                   <p className="text-xs text-stone-400 italic text-center py-12 font-sans">
-                    אין דירות להצגה — הוסיפו דירה חדשה או שנו את הסינון
+                    {activeFilter === 'archive'
+                      ? 'אין דירות בארכיון או בסטטוס נפסל'
+                      : 'אין דירות פעילות להצגה — הוסיפו דירה חדשה או שנו את הסינון'}
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3.5">
@@ -920,10 +948,11 @@ export default function MainWorkspace({
                       if (apt.status === 'נחתם חוזה! 🎉') {
                         cardStyle = 'bg-[#f1f6f0]';
                       } else if (
-                        apt.status === 'נפסל' ||
-                        apt.status === 'ארכיון'
+                        activeFilter === 'archive' &&
+                        (apt.status === 'נפסל' || apt.status === 'ארכיון')
                       ) {
-                        cardStyle = 'bg-white/40 opacity-40';
+                        cardStyle =
+                          'bg-stone-50 ring-1 ring-stone-200/80 shadow-sm';
                       } else if (isSelected) {
                         cardStyle =
                           'bg-white ring-2 ring-[#ca6a43]/50 shadow-lg';

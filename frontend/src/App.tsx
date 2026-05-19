@@ -20,6 +20,12 @@ type ApartmentStatus = 'חדש' | 'יצרנו קשר' | 'נקבע סיור' | '�
 
 const STATUS_OPTIONS: ApartmentStatus[] = ['חדש', 'יצרנו קשר', 'נקבע סיור', 'ראינו את הדירה', 'במשא ומתן', 'נחתם חוזה! 🎉', 'ארכיון', 'נפסל'];
 
+const INACTIVE_STATUSES = new Set<ApartmentStatus>(['ארכיון', 'נפסל']);
+
+export function isInactiveApartmentStatus(status: string): boolean {
+  return INACTIVE_STATUSES.has(status as ApartmentStatus);
+}
+
 interface Criterion {
   id: string;
   label: string;
@@ -198,6 +204,9 @@ export default function App() {
         apt.id === id ? { ...apt, status: newStatus } : apt
       )
     );
+    if (isInactiveApartmentStatus(newStatus)) {
+      setSelectedAptId((current) => (current === id ? null : current));
+    }
     if (newStatus === 'נחתם חוזה! 🎉') {
       triggerConfetti();
     }
@@ -485,13 +494,40 @@ export default function App() {
     });
   }, [apartments, idealBudget, maxBudget, criteria, targetMonthStr, dateWeight, budgetWeight]);
 
+  const archivedCount = useMemo(
+    () =>
+      processedApartments.filter((apt) =>
+        isInactiveApartmentStatus(apt.status)
+      ).length,
+    [processedApartments]
+  );
+
   const filteredApartments = useMemo(() => {
-    if (activeFilter === 'all') return processedApartments;
-    return processedApartments.filter(apt => {
+    if (activeFilter === 'archive') {
+      return processedApartments.filter((apt) =>
+        isInactiveApartmentStatus(apt.status)
+      );
+    }
+
+    const activeListings = processedApartments.filter(
+      (apt) => !isInactiveApartmentStatus(apt.status)
+    );
+
+    if (activeFilter === 'all') return activeListings;
+
+    return activeListings.filter((apt) => {
       const val = apt.extractedData?.criteriaValues?.[activeFilter];
       return val === 'כן' || val === 'ממ"ד';
     });
   }, [processedApartments, activeFilter]);
+
+  useEffect(() => {
+    if (activeFilter === 'archive' || !selectedAptId) return;
+    const selected = processedApartments.find((a) => a.id === selectedAptId);
+    if (selected && isInactiveApartmentStatus(selected.status)) {
+      setSelectedAptId(null);
+    }
+  }, [activeFilter, selectedAptId, processedApartments]);
 
   const activeApartmentDetails = processedApartments.find(a => a.id === selectedAptId);
 
@@ -565,6 +601,7 @@ export default function App() {
         activeApartmentDetails={activeApartmentDetails}
         activeFilter={activeFilter}
         onActiveFilterChange={setActiveFilter}
+        archivedCount={archivedCount}
         criteria={criteria}
         criteriaIcons={CRITERIA_ICONS}
         statusOptions={STATUS_OPTIONS}

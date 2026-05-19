@@ -27,11 +27,21 @@ def is_temp_demo_username(username: str) -> bool:
         TEMP_DEMO_DOMAIN
     )
 
-# Unsplash — copyright-free placeholders (interiors / architecture)
-_UNSPLASH = "https://images.unsplash.com"
-_IMG = lambda photo_id: (
-    f"{_UNSPLASH}/{photo_id}?auto=format&fit=crop&w=1200&q=80"
-)
+# Unsplash — stable copyright-free interior placeholders
+def _img(photo_id: str) -> str:
+    return (
+        f"https://images.unsplash.com/{photo_id}"
+        "?auto=format&fit=crop&w=800&q=80"
+    )
+
+
+# Verified long-lived photo IDs (interiors / architecture)
+_PHOTO_LIVING = "photo-1522771739844-6a9f6d5f14af"
+_PHOTO_SOFA = "photo-1502672260266-1c1ef14d934b"
+_PHOTO_KITCHEN = "photo-1556912173-46c336c3f1e6"
+_PHOTO_BEDROOM = "photo-1522708323590-d24dbb6b0267"
+_PHOTO_BALCONY = "photo-1600607687939-ce8a6c25118c"
+_PHOTO_EXTERIOR = "photo-1600596542815-ffad4c1539a9"
 
 DEMO_APARTMENTS: list[dict] = [
     {
@@ -59,15 +69,15 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _IMG("photo-1522708323590-d24dbb6b0267"),
+                "url": _img(_PHOTO_LIVING),
                 "label": "rothschild-living-room.jpg",
             },
             {
-                "url": _IMG("photo-1502672260266-1c1ef14d934b"),
+                "url": _img(_PHOTO_SOFA),
                 "label": "rothschild-sofa.jpg",
             },
             {
-                "url": _IMG("photo-1484154218962-a197022b5858"),
+                "url": _img(_PHOTO_KITCHEN),
                 "label": "rothschild-kitchen.jpg",
             },
         ],
@@ -97,11 +107,11 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _IMG("photo-1560448204-e02f11c3d0e2"),
+                "url": _img(_PHOTO_BEDROOM),
                 "label": "givatayim-bedroom.jpg",
             },
             {
-                "url": _IMG("photo-1493809842364-78817add7ffb"),
+                "url": _img(_PHOTO_LIVING),
                 "label": "givatayim-living.jpg",
             },
         ],
@@ -131,15 +141,15 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _IMG("photo-1600596542815-ffad4c1539a9"),
+                "url": _img(_PHOTO_EXTERIOR),
                 "label": "neve-tzedek-exterior.jpg",
             },
             {
-                "url": _IMG("photo-1600607687939-ce8a6c25118c"),
+                "url": _img(_PHOTO_BALCONY),
                 "label": "neve-tzedek-bedroom.jpg",
             },
             {
-                "url": _IMG("photo-1600566753190-17f0baa2a6c3"),
+                "url": _img(_PHOTO_SOFA),
                 "label": "neve-tzedek-balcony.jpg",
             },
         ],
