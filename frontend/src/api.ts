@@ -13,6 +13,14 @@ const USER_KEY = 'apartment_hunter_user';
 export interface AuthUser {
   id: number;
   username: string;
+  isDemoSession?: boolean;
+}
+
+export function authDisplayName(user: AuthUser): string {
+  if (user.isDemoSession || user.username.startsWith('demo_temp_')) {
+    return 'סביבת דמו אישית';
+  }
+  return user.username;
 }
 
 export interface ApartmentImage {
@@ -141,8 +149,13 @@ export async function loginDemo(): Promise<AuthUser> {
     access_token: string;
     username: string;
     user_id: number;
+    is_demo_session?: boolean;
   }>('/api/auth/demo', { method: 'POST' }, false);
-  const user = { id: data.user_id, username: data.username };
+  const user: AuthUser = {
+    id: data.user_id,
+    username: data.username,
+    isDemoSession: data.is_demo_session ?? true,
+  };
   saveAuth(data.access_token, user);
   return user;
 }

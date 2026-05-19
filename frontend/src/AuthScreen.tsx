@@ -144,7 +144,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         >
           <span>{demoLoading ? 'נכנס לדשבורד...' : 'Explore Demo Account'}</span>
           <span className="text-[10px] font-medium opacity-90">
-            צפייה מיידית בדירות לדוגמה — ללא הרשמה
+            סביבת דמו פרטית לכל מבקר — ללא הרשמה
           </span>
         </button>
       </div>

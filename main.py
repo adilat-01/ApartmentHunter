@@ -28,7 +28,7 @@ from database import (
     init_db,
     parse_extracted_data,
 )
-from seed_demo import ensure_demo_user
+from seed_demo import create_isolated_demo_session
 
 app = FastAPI(title="ApartmentHunter API")
 
@@ -67,13 +67,6 @@ client = genai.Client(
 @app.on_event("startup")
 def on_startup():
     init_db()
-    from database import SessionLocal
-
-    db = SessionLocal()
-    try:
-        ensure_demo_user(db)
-    finally:
-        db.close()
 
 
 # --- Pydantic schemas ---
@@ -125,6 +118,7 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     username: str
     user_id: int
+    is_demo_session: bool = False
 
 
 class UserResponse(BaseModel):
@@ -266,11 +260,14 @@ def login(payload: LoginPayload, db: Session = Depends(get_db)):
 
 @app.post("/api/auth/demo", response_model=AuthResponse)
 def login_demo(db: Session = Depends(get_db)):
-    """Instant access for reviewers — no signup required."""
-    user = ensure_demo_user(db)
+    """Instant access — provisions a private temp demo user + seed data."""
+    user = create_isolated_demo_session(db)
     token = create_access_token(user.id, user.username)
     return AuthResponse(
-        access_token=token, username=user.username, user_id=user.id
+        access_token=token,
+        username=user.username,
+        user_id=user.id,
+        is_demo_session=True,
     )
 
 

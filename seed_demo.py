@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,14 @@ from database import Apartment, ApartmentImage, SessionLocal, User, init_db
 
 DEMO_USERNAME = "demo@apartmenthunter.com"
 DEMO_PASSWORD = os.environ.get("DEMO_ACCOUNT_PASSWORD", "demo-hunter-2026")
+TEMP_DEMO_PREFIX = "demo_temp_"
+TEMP_DEMO_DOMAIN = "@apartmenthunter.com"
+
+
+def is_temp_demo_username(username: str) -> bool:
+    return username.startswith(TEMP_DEMO_PREFIX) and username.endswith(
+        TEMP_DEMO_DOMAIN
+    )
 
 # Unsplash — copyright-free placeholders (interiors / architecture)
 _UNSPLASH = "https://images.unsplash.com"
@@ -191,6 +200,7 @@ def seed_demo_apartments(db: Session, user: User) -> int:
 
 
 def ensure_demo_user(db: Session) -> User:
+    """Legacy shared demo account — kept for manual scripts only."""
     user = db.query(User).filter(User.username == DEMO_USERNAME).first()
     if user is None:
         user = User(
@@ -211,16 +221,40 @@ def ensure_demo_user(db: Session) -> User:
     return user
 
 
+def create_isolated_demo_session(db: Session) -> User:
+    """
+    Create a one-off demo user with a fresh copy of benchmark apartments.
+    Each beta tester gets an isolated sandbox (no shared state).
+    """
+    for _ in range(5):
+        suffix = secrets.token_hex(8)
+        username = f"{TEMP_DEMO_PREFIX}{suffix}{TEMP_DEMO_DOMAIN}"
+        if db.query(User).filter(User.username == username).first() is None:
+            break
+    else:
+        raise RuntimeError("Could not allocate unique demo username")
+
+    user = User(
+        username=username,
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    seed_demo_apartments(db, user)
+    return user
+
+
 def run_seed() -> None:
     init_db()
     db = SessionLocal()
     try:
-        user = ensure_demo_user(db)
+        user = create_isolated_demo_session(db)
         apt_count = db.query(Apartment).filter(Apartment.user_id == user.id).count()
         img_count = (
             db.query(ApartmentImage).filter(ApartmentImage.user_id == user.id).count()
         )
-        print(f"Demo account ready: {DEMO_USERNAME}")
+        print(f"Isolated demo session: {user.username}")
         print(f"  Apartments: {apt_count}")
         print(f"  Images: {img_count}")
     finally:

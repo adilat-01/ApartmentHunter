@@ -10,6 +10,7 @@ import {
   deleteApartment,
   deleteApartmentImage,
   fetchApartments,
+  authDisplayName,
   getStoredUser,
   updateApartment,
   uploadApartmentImage,
@@ -553,7 +554,7 @@ export default function App() {
       ))}
       
       <MainWorkspace
-        authUsername={authUser.username}
+        authUsername={authDisplayName(authUser)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onLogout={handleLogout}

@@ -1,4 +1,4 @@
-import type { ChangeEvent, FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import AuthenticatedImage from './AuthenticatedImage';
 import type { Apartment, ApartmentImage } from './api';
 
@@ -675,112 +675,174 @@ export default function MainWorkspace({
       countByStatus(statsApartments, 'נפסל'),
   };
 
-  return (
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileDrawerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileDrawerOpen]);
+
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+  }, [activeTab, selectedAptId]);
+
+  const sidebarPanels =
+    activeTab === 'dashboard' &&
+    (showApartmentPanel && activeApartmentDetails ? (
+      <ApartmentDetailPanel
+        apt={activeApartmentDetails}
+        criteria={criteria}
+        criteriaIcons={criteriaIcons}
+        formatMonthHebrew={formatMonthHebrew}
+        maxApartmentImages={maxApartmentImages}
+        uploadingImage={uploadingImage}
+        onClose={() => onSelectApartment(null)}
+        onAptCriteriaValueChange={onAptCriteriaValueChange}
+        onNotesChange={onNotesChange}
+        onNotesBlur={onNotesBlur}
+        onImageUpload={onImageUpload}
+        onImageDelete={onImageDelete}
+        openLightbox={openLightbox}
+      />
+    ) : (
+      <GlobalPreferencesPanel
+        criteria={criteria}
+        criteriaIcons={criteriaIcons}
+        monthsHebrew={monthsHebrew}
+        targetMonth={targetMonth}
+        onTargetMonthChange={onTargetMonthChange}
+        targetYear={targetYear}
+        onTargetYearChange={onTargetYearChange}
+        idealBudget={idealBudget}
+        onIdealBudgetChange={onIdealBudgetChange}
+        maxBudget={maxBudget}
+        onMaxBudgetChange={onMaxBudgetChange}
+        budgetWeight={budgetWeight}
+        onBudgetWeightChange={onBudgetWeightChange}
+        dateWeight={dateWeight}
+        onDateWeightChange={onDateWeightChange}
+        onCriterionWeightChange={onCriterionWeightChange}
+        onDeleteCriterion={onDeleteCriterion}
+        newCriterionLabel={newCriterionLabel}
+        onNewCriterionLabelChange={onNewCriterionLabelChange}
+        onAddCriterion={onAddCriterion}
+      />
+    ));
+
+  const renderSidebar = (idSuffix: string) => (
     <>
-<div className="flex flex-1 min-w-0 w-full min-h-screen">
-      <aside className="w-[19rem] shrink-0 sticky top-0 h-screen flex flex-col bg-[#ede5d3] shadow-[4px_0_24px_rgba(120,108,95,0.03)] overflow-hidden">
-        <div className="p-4 flex flex-col gap-3 shrink-0">
-          <div className="flex items-center gap-2.5">
+      <div className="p-4 flex flex-col gap-3 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-xl text-[#ca6a43]">🏹</span>
-            <div>
-              <h1 className="text-base font-bold tracking-tight text-stone-900 font-sans">
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-stone-900 font-sans truncate">
                 ApartmentHunter
               </h1>
-              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-0.5 font-sans">
+              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-0.5 font-sans truncate">
                 שלום, {authUsername}
               </p>
             </div>
           </div>
-
-          <nav className="flex flex-col gap-1">
-            <button
-              type="button"
-              onClick={() => onTabChange('dashboard')}
-              className={`app-btn-nav ${
-                activeTab === 'dashboard'
-                  ? 'bg-white text-stone-900 shadow-sm'
-                  : 'text-stone-600 hover:bg-white/60'
-              }`}
-            >
-              לוח דירות
-            </button>
-            <button
-              type="button"
-              onClick={() => onTabChange('add')}
-              className={`app-btn-nav ${
-                activeTab === 'add'
-                  ? 'bg-white text-stone-900 shadow-sm'
-                  : 'text-stone-600 hover:bg-white/60'
-              }`}
-            >
-              הוספת דירה
-            </button>
-          </nav>
-        </div>
-
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3">
-          {activeTab === 'dashboard' &&
-            (showApartmentPanel && activeApartmentDetails ? (
-              <ApartmentDetailPanel
-                apt={activeApartmentDetails}
-                criteria={criteria}
-                criteriaIcons={criteriaIcons}
-                formatMonthHebrew={formatMonthHebrew}
-                maxApartmentImages={maxApartmentImages}
-                uploadingImage={uploadingImage}
-                onClose={() => onSelectApartment(null)}
-                onAptCriteriaValueChange={onAptCriteriaValueChange}
-                onNotesChange={onNotesChange}
-                onNotesBlur={onNotesBlur}
-                onImageUpload={onImageUpload}
-                onImageDelete={onImageDelete}
-                openLightbox={openLightbox}
-              />
-            ) : (
-              <GlobalPreferencesPanel
-                criteria={criteria}
-                criteriaIcons={criteriaIcons}
-                monthsHebrew={monthsHebrew}
-                targetMonth={targetMonth}
-                onTargetMonthChange={onTargetMonthChange}
-                targetYear={targetYear}
-                onTargetYearChange={onTargetYearChange}
-                idealBudget={idealBudget}
-                onIdealBudgetChange={onIdealBudgetChange}
-                maxBudget={maxBudget}
-                onMaxBudgetChange={onMaxBudgetChange}
-                budgetWeight={budgetWeight}
-                onBudgetWeightChange={onBudgetWeightChange}
-                dateWeight={dateWeight}
-                onDateWeightChange={onDateWeightChange}
-                onCriterionWeightChange={onCriterionWeightChange}
-                onDeleteCriterion={onDeleteCriterion}
-                newCriterionLabel={newCriterionLabel}
-                onNewCriterionLabelChange={onNewCriterionLabelChange}
-                onAddCriterion={onAddCriterion}
-              />
-            ))}
-        </div>
-
-        <div className="p-4 pt-0 shrink-0 border-t border-stone-300/40">
           <button
             type="button"
-            onClick={onLogout}
-            className="w-full text-[10px] font-bold text-stone-500 hover:text-stone-800 bg-white/50 px-2 py-1 rounded-md transition text-[9px] font-sans"
+            id={`close-drawer-${idSuffix}`}
+            onClick={() => setMobileDrawerOpen(false)}
+            className="md:hidden shrink-0 w-8 h-8 rounded-lg bg-white/80 text-stone-600 font-bold shadow-sm"
+            aria-label="סגור תפריט"
           >
-            התנתקות
+            ✕
           </button>
         </div>
+
+        <nav className="flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => onTabChange('dashboard')}
+            className={`app-btn-nav ${
+              activeTab === 'dashboard'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600 hover:bg-white/60'
+            }`}
+          >
+            לוח דירות
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange('add')}
+            className={`app-btn-nav ${
+              activeTab === 'add'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600 hover:bg-white/60'
+            }`}
+          >
+            הוספת דירה
+          </button>
+        </nav>
+      </div>
+
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3">{sidebarPanels}</div>
+
+      <div className="p-4 pt-0 shrink-0 border-t border-stone-300/40">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="w-full text-[10px] font-bold text-stone-500 hover:text-stone-800 bg-white/50 px-3 py-1.5 rounded-lg transition font-sans"
+        >
+          התנתקות
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+<div className="flex flex-1 min-w-0 w-full min-h-screen">
+      <aside className="hidden md:flex w-[19rem] shrink-0 sticky top-0 h-screen flex-col bg-[#ede5d3] shadow-[4px_0_24px_rgba(120,108,95,0.03)] overflow-hidden">
+        {renderSidebar('desktop')}
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#f7f4eb]">
+      {mobileDrawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <button
+            type="button"
+            className="absolute inset-0 bg-stone-900/40 backdrop-blur-[2px]"
+            aria-label="סגור תפריט"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          <aside
+            className="absolute top-0 start-0 h-full w-[min(19rem,92vw)] flex flex-col bg-[#ede5d3] shadow-2xl animate-[drawerIn_0.25s_ease-out]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="העדפות וניווט"
+          >
+            {renderSidebar('mobile')}
+          </aside>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setMobileDrawerOpen(true)}
+        className="md:hidden fixed bottom-5 end-5 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-[#ca6a43] text-white text-xl shadow-lg shadow-[#ca6a43]/30 border border-white/20 active:scale-95 transition"
+        aria-label="פתח העדפות וניווט"
+      >
+        ⚙️
+      </button>
+
+
+      <main className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#f7f4eb] pb-20 md:pb-0">
         {activeTab === 'dashboard' ? (
           <>
               <div className="px-5 pt-4 pb-3">
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 font-sans">
                   סיכום בזמן אמת
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 max-md:[&>*]:min-w-0">
                   {[
                     { label: 'סה״כ במעקב', value: stats.total, accent: 'text-stone-900' },
                     { label: 'חדשות', value: stats.new, accent: 'text-sky-700' },
@@ -843,13 +905,13 @@ export default function MainWorkspace({
                 ))}
               </div>
 
-              <section className="px-5 pb-6 pt-1.5 flex-1 overflow-y-auto">
+              <section className="px-4 md:px-5 pb-6 pt-1.5 flex-1 overflow-y-auto">
                 {filteredApartments.length === 0 ? (
                   <p className="text-xs text-stone-400 italic text-center py-12 font-sans">
                     אין דירות להצגה — הוסיפו דירה חדשה או שנו את הסינון
                   </p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3.5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3.5">
                     {filteredApartments.map((apt) => {
                       const isSelected = selectedAptId === apt.id;
                       const featured = getFeaturedImage(apt);
