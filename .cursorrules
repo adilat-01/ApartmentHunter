@@ -1,0 +1,11 @@
+Project Context & Developer Profile
+
+* About the Developer: I am Adi, a university student building this project for hands-on industry experience and practical learning.
+* Project Name: ApartmentHunter
+* The Core Mission: A boutique, highly styled web application designed to help young couples and individuals screen, score, and manage potential apartment rentals. It solves the chaos of opening dozens of Facebook tabs by extracting data automatically and keeping everything in one neat workspace.
+* Target Audience: The current user, plus selected close friends for an upcoming short-term Alpha/Beta testing phase (the site will run for 1-2 weeks and then go offline).
+* Tech Stack: React (Vite) frontend + FastAPI (Python) backend + SQLite database (for persistent user data and auth).
+* Core UX/UI Philosophy:
+  1. Premium & Boutique: The interface must look editorial, clean, and modern—not like a dense corporate enterprise system. Use relevant emojis for categories, smooth slide-out panels, and elegant micro-interactions (like a vertical confetti rain on success).
+  2. Data Privacy First: Reviewers and casual testers should use a dedicated "Demo Account" populated with fictional, realistic benchmark data and high-quality, copyright-free interior photos (from Unsplash placeholders). No real people's phone numbers or copyrighted images should ever be exposed.
+  3. Keep It Lean: Build for scalability but prioritize velocity and simplicity (MVP approach) since this is a student project. Avoid over-engineering.
