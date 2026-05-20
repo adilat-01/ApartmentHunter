@@ -27,27 +27,18 @@ def is_temp_demo_username(username: str) -> bool:
         TEMP_DEMO_DOMAIN
     )
 
-# Unsplash — stable copyright-free interior placeholders
-def _img(photo_id: str) -> str:
-    return (
-        f"https://images.unsplash.com/{photo_id}"
-        "?auto=format&fit=crop&w=800&q=80"
-    )
+# Static demo photos in frontend/public/mock_images/ (see frontend/src/mock_front.ts)
+def _mock_img(filename: str) -> str:
+    return f"/mock_images/{filename}"
 
 
-# Verified long-lived photo IDs (interiors / architecture)
-_PHOTO_LIVING = "photo-1522771739844-6a9f6d5f14af"
-_PHOTO_SOFA = "photo-1502672260266-1c1ef14d934b"
-_PHOTO_KITCHEN = "photo-1556912173-46c336c3f1e6"
-_PHOTO_BEDROOM = "photo-1522708323590-d24dbb6b0267"
-_PHOTO_BALCONY = "photo-1600607687939-ce8a6c25118c"
-_PHOTO_EXTERIOR = "photo-1600596542815-ffad4c1539a9"
-
-# Rothschild listing — never use local .jpg filenames; stable Unsplash only
-_ROTHSCHILD_UNSPLASH = (
-    "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af"
-    "?auto=format&fit=crop&w=600&q=80"
-)
+_MOCK = {
+    "image1": _mock_img("image1.jpg"),
+    "image2": _mock_img("image2.jpg"),
+    "image3": _mock_img("image3.jpg"),
+    "image4": _mock_img("image4.jpg"),
+    "image5": _mock_img("image5.jpg"),
+}
 
 DEMO_APARTMENTS: list[dict] = [
     {
@@ -75,16 +66,8 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _ROTHSCHILD_UNSPLASH,
-                "label": "rothschild-living-room",
-            },
-            {
-                "url": _ROTHSCHILD_UNSPLASH,
-                "label": "rothschild-sofa",
-            },
-            {
-                "url": _ROTHSCHILD_UNSPLASH,
-                "label": "rothschild-kitchen",
+                "url": _MOCK["image2"],
+                "label": "rothschild-tel-aviv.jpg",
             },
         ],
     },
@@ -113,12 +96,8 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _img(_PHOTO_BEDROOM),
-                "label": "givatayim-bedroom.jpg",
-            },
-            {
-                "url": _img(_PHOTO_LIVING),
-                "label": "givatayim-living.jpg",
+                "url": _MOCK["image3"],
+                "label": "givatayim.jpg",
             },
         ],
     },
@@ -147,35 +126,71 @@ DEMO_APARTMENTS: list[dict] = [
         },
         "images": [
             {
-                "url": _img(_PHOTO_EXTERIOR),
-                "label": "neve-tzedek-exterior.jpg",
+                "url": _MOCK["image4"],
+                "label": "neve-tzedek-1.jpg",
             },
             {
-                "url": _img(_PHOTO_BALCONY),
-                "label": "neve-tzedek-bedroom.jpg",
+                "url": _MOCK["image5"],
+                "label": "neve-tzedek-2.jpg",
             },
             {
-                "url": _img(_PHOTO_SOFA),
-                "label": "neve-tzedek-balcony.jpg",
+                "url": _MOCK["image1"],
+                "label": "neve-tzedek-3.jpg",
             },
         ],
     },
 ]
 
 
-def repair_legacy_rothschild_images(db: Session) -> int:
-    """Fix DB rows that still point at broken/local rothschild-*.jpg placeholders."""
-    images = (
-        db.query(ApartmentImage)
-        .filter(ApartmentImage.original_filename.like("%rothschild%"))
+def repair_legacy_demo_images(db: Session) -> int:
+    """Normalize demo listing photos to unique /mock_images/ assets."""
+    updated = 0
+
+    for area_fragment, url in (
+        ("רוטשילד", _MOCK["image2"]),
+        ("גבעתיים", _MOCK["image3"]),
+    ):
+        apartments = (
+            db.query(Apartment)
+            .filter(Apartment.extracted_data_json.contains(area_fragment))
+            .all()
+        )
+        for apt in apartments:
+            images = (
+                db.query(ApartmentImage)
+                .filter(ApartmentImage.apartment_id == apt.id)
+                .order_by(ApartmentImage.id)
+                .all()
+            )
+            if not images:
+                continue
+            if images[0].external_url != url:
+                images[0].external_url = url
+                images[0].stored_filename = "external"
+                updated += 1
+            for extra in images[1:]:
+                db.delete(extra)
+                updated += 1
+
+    neve_urls = [_MOCK["image4"], _MOCK["image5"], _MOCK["image1"]]
+    neve_apartments = (
+        db.query(Apartment)
+        .filter(Apartment.extracted_data_json.contains("נווה צדק"))
         .all()
     )
-    updated = 0
-    for img in images:
-        if img.external_url != _ROTHSCHILD_UNSPLASH:
-            img.external_url = _ROTHSCHILD_UNSPLASH
-            img.stored_filename = "external"
-            updated += 1
+    for apt in neve_apartments:
+        images = (
+            db.query(ApartmentImage)
+            .filter(ApartmentImage.apartment_id == apt.id)
+            .order_by(ApartmentImage.id)
+            .all()
+        )
+        for idx, img in enumerate(images[: len(neve_urls)]):
+            if img.external_url != neve_urls[idx]:
+                img.external_url = neve_urls[idx]
+                img.stored_filename = "external"
+                updated += 1
+
     if updated:
         db.commit()
     return updated

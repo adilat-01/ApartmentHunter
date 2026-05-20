@@ -15,7 +15,11 @@ export default function AuthenticatedImage({
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (
+      path.startsWith('http://') ||
+      path.startsWith('https://') ||
+      path.startsWith('/')
+    ) {
       setSrc(path);
       return;
     }

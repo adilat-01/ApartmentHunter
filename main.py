@@ -28,7 +28,7 @@ from database import (
     init_db,
     parse_extracted_data,
 )
-from seed_demo import create_isolated_demo_session, repair_legacy_rothschild_images
+from seed_demo import create_isolated_demo_session, repair_legacy_demo_images
 
 app = FastAPI(title="ApartmentHunter API")
 
@@ -71,7 +71,7 @@ def on_startup():
 
     db = SessionLocal()
     try:
-        repair_legacy_rothschild_images(db)
+        repair_legacy_demo_images(db)
     finally:
         db.close()
 
