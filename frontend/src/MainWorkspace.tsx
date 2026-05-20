@@ -413,7 +413,7 @@ function ApartmentDetailPanel({
   onImageUpload,
   onImageDelete,
   openLightbox,
-  embeddedInColumn = false,
+  hideHeader = false,
 }: {
   apt: ProcessedApartment;
   criteria: Criterion[];
@@ -428,34 +428,36 @@ function ApartmentDetailPanel({
   onImageUpload: MainWorkspaceProps['onImageUpload'];
   onImageDelete: MainWorkspaceProps['onImageDelete'];
   openLightbox: MainWorkspaceProps['openLightbox'];
-  embeddedInColumn?: boolean;
+  hideHeader?: boolean;
 }) {
   return (
     <div
       className={`flex flex-col gap-3 ${
-        embeddedInColumn ? '' : 'pt-3 border-t border-stone-300/40'
+        hideHeader ? '' : 'pt-3 border-t border-stone-300/40'
       }`}
     >
-      <div className="flex justify-between items-start gap-2">
-        <div>
-          <h2 className="text-xs font-bold text-stone-900 font-sans">
-            {apt.extractedData.area}
-          </h2>
-          <p className="text-[10px] text-stone-500 font-sans mt-0.5">
-            {apt.extractedData.rooms} חדרים •{' '}
-            {apt.extractedData.price.toLocaleString()} ₪ • התאמה{' '}
-            <span className="font-bold text-[#ca6a43]">{apt.matchScore}%</span>
-          </p>
+      {!hideHeader && (
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0">
+            <h2 className="text-xs font-bold text-stone-900 font-sans">
+              {apt.extractedData.area}
+            </h2>
+            <p className="text-[10px] text-stone-500 font-sans mt-0.5">
+              {apt.extractedData.rooms} חדרים •{' '}
+              {apt.extractedData.price.toLocaleString()} ₪ • התאמה{' '}
+              <span className="font-bold text-[#ca6a43]">{apt.matchScore}%</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-stone-500 hover:text-stone-800 w-7 h-7 rounded-lg text-sm bg-white shadow-sm font-bold transition shrink-0"
+            aria-label="חזרה להעדפות"
+          >
+            ✕
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-stone-500 hover:text-stone-800 w-7 h-7 rounded-lg text-sm bg-white shadow-sm font-bold transition shrink-0"
-          aria-label="חזרה להעדפות"
-        >
-          ✕
-        </button>
-      </div>
+      )}
 
       <section className="flex flex-col gap-2">
         <h3 className="text-[9px] font-bold uppercase tracking-widest text-stone-500 font-sans">
@@ -745,31 +747,46 @@ export default function MainWorkspace({
 
   const apartmentDetailPanelContent = showApartmentPanel && activeApartmentDetails;
 
-  const renderApartmentDetailPanel = (embeddedInColumn: boolean) =>
-    apartmentDetailPanelContent ? (
-      <ApartmentDetailPanel
-        apt={activeApartmentDetails}
-        criteria={criteria}
-        criteriaIcons={criteriaIcons}
-        formatMonthHebrew={formatMonthHebrew}
-        maxApartmentImages={maxApartmentImages}
-        uploadingImage={uploadingImage}
-        onClose={handleCloseApartmentPanel}
-        onAptCriteriaValueChange={onAptCriteriaValueChange}
-        onNotesChange={onNotesChange}
-        onNotesBlur={onNotesBlur}
-        onImageUpload={onImageUpload}
-        onImageDelete={onImageDelete}
-        openLightbox={openLightbox}
-        embeddedInColumn={embeddedInColumn}
-      />
-    ) : null;
+  const apartmentDetailPanel = apartmentDetailPanelContent ? (
+    <ApartmentDetailPanel
+      apt={activeApartmentDetails}
+      criteria={criteria}
+      criteriaIcons={criteriaIcons}
+      formatMonthHebrew={formatMonthHebrew}
+      maxApartmentImages={maxApartmentImages}
+      uploadingImage={uploadingImage}
+      onClose={handleCloseApartmentPanel}
+      onAptCriteriaValueChange={onAptCriteriaValueChange}
+      onNotesChange={onNotesChange}
+      onNotesBlur={onNotesBlur}
+      onImageUpload={onImageUpload}
+      onImageDelete={onImageDelete}
+      openLightbox={openLightbox}
+    />
+  ) : null;
 
-  const mobileApartmentDetailPanel = renderApartmentDetailPanel(false);
-  const desktopApartmentDetailPanel = renderApartmentDetailPanel(true);
+  const mobileApartmentDetailBody = apartmentDetailPanelContent ? (
+    <ApartmentDetailPanel
+      apt={activeApartmentDetails}
+      criteria={criteria}
+      criteriaIcons={criteriaIcons}
+      formatMonthHebrew={formatMonthHebrew}
+      maxApartmentImages={maxApartmentImages}
+      uploadingImage={uploadingImage}
+      onClose={handleCloseApartmentPanel}
+      onAptCriteriaValueChange={onAptCriteriaValueChange}
+      onNotesChange={onNotesChange}
+      onNotesBlur={onNotesBlur}
+      onImageUpload={onImageUpload}
+      onImageDelete={onImageDelete}
+      openLightbox={openLightbox}
+      hideHeader
+    />
+  ) : null;
 
   const desktopSidebarPanels =
-    activeTab === 'dashboard' ? globalPreferencesPanel : null;
+    activeTab === 'dashboard' &&
+    (apartmentDetailPanel ?? globalPreferencesPanel);
 
   const renderDesktopSidebar = () => (
     <>
@@ -889,7 +906,9 @@ export default function MainWorkspace({
         </div>
       )}
 
-      {mobilePanel === 'apartment' && mobileApartmentDetailPanel && (
+      {mobilePanel === 'apartment' &&
+        mobileApartmentDetailBody &&
+        activeApartmentDetails && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <button
             type="button"
@@ -898,16 +917,44 @@ export default function MainWorkspace({
             onClick={handleCloseApartmentPanel}
           />
           <div
-            className="relative w-full max-h-[92vh] flex flex-col bg-[#ede5d3] rounded-t-3xl shadow-2xl animate-[sheetUp_0.28s_ease-out]"
+            className="relative w-full flex flex-col bg-[#ede5d3] rounded-t-3xl shadow-2xl animate-[sheetUp_0.28s_ease-out] max-h-[min(90dvh,calc(100dvh-0.5rem))] min-h-0"
             role="dialog"
             aria-modal="true"
             aria-label="פרטי דירה"
           >
-            <div className="flex justify-center pt-2 pb-1 shrink-0">
-              <span className="w-10 h-1 rounded-full bg-stone-300" aria-hidden />
+            <div className="shrink-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-2 border-b border-stone-300/40 bg-[#ede5d3] rounded-t-3xl">
+              <div className="flex justify-center pb-2">
+                <span
+                  className="w-10 h-1 rounded-full bg-stone-300"
+                  aria-hidden
+                />
+              </div>
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm font-bold text-stone-900 font-sans leading-tight">
+                    {activeApartmentDetails.extractedData.area}
+                  </h2>
+                  <p className="text-[11px] text-stone-500 font-sans mt-0.5">
+                    {activeApartmentDetails.extractedData.rooms} חדרים •{' '}
+                    {activeApartmentDetails.extractedData.price.toLocaleString()}{' '}
+                    ₪ • התאמה{' '}
+                    <span className="font-bold text-[#ca6a43]">
+                      {activeApartmentDetails.matchScore}%
+                    </span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseApartmentPanel}
+                  className="shrink-0 flex items-center justify-center w-11 h-11 rounded-xl text-stone-600 bg-white shadow-md border border-stone-200/80 text-lg font-bold active:scale-95 transition"
+                  aria-label="סגור פרטי דירה"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-6">
-              {mobileApartmentDetailPanel}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]">
+              {mobileApartmentDetailBody}
             </div>
           </div>
         </div>
@@ -977,16 +1024,7 @@ export default function MainWorkspace({
 
 
         {activeTab === 'dashboard' ? (
-          <div className="flex flex-1 min-h-0 w-full min-w-0">
-            {showApartmentPanel && desktopApartmentDetailPanel && (
-              <aside
-                className="hidden md:flex w-[min(22rem,34vw)] shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto bg-[#ede5d3]/90 border-s border-stone-200/50 shadow-[inset_4px_0_24px_rgba(120,108,95,0.04)] z-10"
-                aria-label="פרטי דירה נבחרת"
-              >
-                <div className="p-4 w-full">{desktopApartmentDetailPanel}</div>
-              </aside>
-            )}
-            <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <>
               <div className="px-5 pt-4 pb-3">
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 font-sans">
                   סיכום בזמן אמת
@@ -1190,8 +1228,7 @@ export default function MainWorkspace({
                   </div>
                 )}
               </section>
-            </div>
-          </div>
+          </>
 
         ) : (
           <section className="flex flex-col flex-1 p-6 gap-5 overflow-y-auto">
