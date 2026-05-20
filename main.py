@@ -61,11 +61,11 @@ _gemini_httpx = httpx.Client(verify=False)
 
 
 def _get_gemini_client() -> genai.Client:
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = os.environ.get("NEW_GEM_KEY", "").strip()
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="GEMINI_API_KEY is not configured. Set it in your .env file.",
+            detail="NEW_GEM_KEY is not configured. Set it in your .env file.",
         )
     return genai.Client(
         api_key=api_key,
