@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { login, loginDemo, register } from './api';
+import { useDelayedOverlay } from './useDelayedOverlay';
 
 interface AuthScreenProps {
   onAuthenticated: () => void;
@@ -13,6 +14,8 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const busy = loading || demoLoading;
+  const loginOverlay = useDelayedOverlay(busy, 1500, 300);
 
   const handleDemoLogin = async () => {
     setError('');
@@ -170,6 +173,27 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         </svg>
         <span>View on GitHub</span>
       </a>
+
+      {loginOverlay.isMounted && (
+        <div
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#f7f4eb]/70 backdrop-blur-sm transition-opacity duration-300 ${
+            loginOverlay.isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <div className="mx-5 w-full max-w-md rounded-2xl border border-stone-200/80 bg-white/90 p-5 shadow-xl">
+            <div className="flex items-center justify-center gap-3">
+              <div className="h-7 w-7 rounded-full border-[3px] border-stone-300 border-t-[#ca6a43] animate-spin" />
+              <span className="text-sm font-semibold text-stone-700">
+                Waking up the server...
+              </span>
+            </div>
+            <p className="mt-2 text-center text-xs text-stone-500 leading-relaxed">
+              This might take a moment on the first load, thank you for your
+              patience! 🚀
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
