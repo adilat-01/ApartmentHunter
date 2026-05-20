@@ -413,6 +413,7 @@ function ApartmentDetailPanel({
   onImageUpload,
   onImageDelete,
   openLightbox,
+  embeddedInColumn = false,
 }: {
   apt: ProcessedApartment;
   criteria: Criterion[];
@@ -427,9 +428,14 @@ function ApartmentDetailPanel({
   onImageUpload: MainWorkspaceProps['onImageUpload'];
   onImageDelete: MainWorkspaceProps['onImageDelete'];
   openLightbox: MainWorkspaceProps['openLightbox'];
+  embeddedInColumn?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 pt-3 border-t border-stone-300/40">
+    <div
+      className={`flex flex-col gap-3 ${
+        embeddedInColumn ? '' : 'pt-3 border-t border-stone-300/40'
+      }`}
+    >
       <div className="flex justify-between items-start gap-2">
         <div>
           <h2 className="text-xs font-bold text-stone-900 font-sans">
@@ -699,8 +705,11 @@ export default function MainWorkspace({
 
   const handleSelectApartment = (id: string) => {
     onSelectApartment(id);
-    if (activeTab === 'dashboard' && isMobileViewport()) {
+    if (activeTab !== 'dashboard') return;
+    if (isMobileViewport()) {
       setMobilePanel('apartment');
+    } else {
+      setMobilePanel(null);
     }
   };
 
@@ -734,8 +743,10 @@ export default function MainWorkspace({
     />
   );
 
-  const apartmentDetailPanel =
-    showApartmentPanel && activeApartmentDetails ? (
+  const apartmentDetailPanelContent = showApartmentPanel && activeApartmentDetails;
+
+  const renderApartmentDetailPanel = (embeddedInColumn: boolean) =>
+    apartmentDetailPanelContent ? (
       <ApartmentDetailPanel
         apt={activeApartmentDetails}
         criteria={criteria}
@@ -750,12 +761,15 @@ export default function MainWorkspace({
         onImageUpload={onImageUpload}
         onImageDelete={onImageDelete}
         openLightbox={openLightbox}
+        embeddedInColumn={embeddedInColumn}
       />
     ) : null;
 
+  const mobileApartmentDetailPanel = renderApartmentDetailPanel(false);
+  const desktopApartmentDetailPanel = renderApartmentDetailPanel(true);
+
   const desktopSidebarPanels =
-    activeTab === 'dashboard' &&
-    (apartmentDetailPanel ?? globalPreferencesPanel);
+    activeTab === 'dashboard' ? globalPreferencesPanel : null;
 
   const renderDesktopSidebar = () => (
     <>
@@ -875,7 +889,7 @@ export default function MainWorkspace({
         </div>
       )}
 
-      {mobilePanel === 'apartment' && apartmentDetailPanel && (
+      {mobilePanel === 'apartment' && mobileApartmentDetailPanel && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <button
             type="button"
@@ -893,7 +907,7 @@ export default function MainWorkspace({
               <span className="w-10 h-1 rounded-full bg-stone-300" aria-hidden />
             </div>
             <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-6">
-              {apartmentDetailPanel}
+              {mobileApartmentDetailPanel}
             </div>
           </div>
         </div>
@@ -963,7 +977,16 @@ export default function MainWorkspace({
 
 
         {activeTab === 'dashboard' ? (
-          <>
+          <div className="flex flex-1 min-h-0 w-full min-w-0">
+            {showApartmentPanel && desktopApartmentDetailPanel && (
+              <aside
+                className="hidden md:flex w-[min(22rem,34vw)] shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto bg-[#ede5d3]/90 border-s border-stone-200/50 shadow-[inset_4px_0_24px_rgba(120,108,95,0.04)] z-10"
+                aria-label="פרטי דירה נבחרת"
+              >
+                <div className="p-4 w-full">{desktopApartmentDetailPanel}</div>
+              </aside>
+            )}
+            <div className="flex-1 flex flex-col min-w-0 min-h-0">
               <div className="px-5 pt-4 pb-3">
                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 font-sans">
                   סיכום בזמן אמת
@@ -1167,7 +1190,8 @@ export default function MainWorkspace({
                   </div>
                 )}
               </section>
-          </>
+            </div>
+          </div>
 
         ) : (
           <section className="flex flex-col flex-1 p-6 gap-5 overflow-y-auto">
