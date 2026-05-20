@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -32,6 +33,8 @@ from database import (
 )
 from seed_demo import create_isolated_demo_session, repair_legacy_demo_images
 
+load_dotenv()
+
 app = FastAPI(title="ApartmentHunter API")
 
 app.add_middleware(
@@ -54,16 +57,20 @@ ALLOWED_IMAGE_TYPES = {
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_IMAGES_PER_APARTMENT = 5
 
-API_KEY = os.environ.get(
-    "GEMINI_API_KEY",
-    "AIzaSyBV7lJOEBRvEPRM1y3poioxf-YPZZUBk48",
-)
-
 _gemini_httpx = httpx.Client(verify=False)
-client = genai.Client(
-    api_key=API_KEY,
-    http_options=types.HttpOptions(httpx_client=_gemini_httpx),
-)
+
+
+def _get_gemini_client() -> genai.Client:
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="GEMINI_API_KEY is not configured. Set it in your .env file.",
+        )
+    return genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(httpx_client=_gemini_httpx),
+    )
 
 
 @app.on_event("startup")
@@ -624,7 +631,7 @@ Guidelines:
 Post text:
 "{post_text}"
 """
-    response = client.models.generate_content(
+    response = _get_gemini_client().models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt,
         config=types.GenerateContentConfig(
