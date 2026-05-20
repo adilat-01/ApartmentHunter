@@ -55,4 +55,13 @@
       transform: translateX(0);
     }
   }
+
+  @keyframes sheetUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
 }

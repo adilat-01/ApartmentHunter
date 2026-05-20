@@ -677,35 +677,65 @@ export default function MainWorkspace({
       countByStatus(statsApartments, 'נפסל'),
   };
 
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  type MobilePanel = 'settings' | 'apartment' | null;
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
+
+  const isMobileViewport = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(max-width: 767px)').matches;
 
   useEffect(() => {
-    if (!mobileDrawerOpen) return;
+    if (!mobilePanel) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [mobileDrawerOpen]);
+  }, [mobilePanel]);
 
   useEffect(() => {
-    setMobileDrawerOpen(false);
+    setMobilePanel(null);
   }, [activeTab]);
 
   const handleSelectApartment = (id: string) => {
     onSelectApartment(id);
-    if (
-      activeTab === 'dashboard' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(max-width: 767px)').matches
-    ) {
-      setMobileDrawerOpen(true);
+    if (activeTab === 'dashboard' && isMobileViewport()) {
+      setMobilePanel('apartment');
     }
   };
 
-  const sidebarPanels =
-    activeTab === 'dashboard' &&
-    (showApartmentPanel && activeApartmentDetails ? (
+  const handleCloseApartmentPanel = () => {
+    onSelectApartment(null);
+    setMobilePanel((current) => (current === 'apartment' ? null : current));
+  };
+
+  const globalPreferencesPanel = (
+    <GlobalPreferencesPanel
+      criteria={criteria}
+      criteriaIcons={criteriaIcons}
+      monthsHebrew={monthsHebrew}
+      targetMonth={targetMonth}
+      onTargetMonthChange={onTargetMonthChange}
+      targetYear={targetYear}
+      onTargetYearChange={onTargetYearChange}
+      idealBudget={idealBudget}
+      onIdealBudgetChange={onIdealBudgetChange}
+      maxBudget={maxBudget}
+      onMaxBudgetChange={onMaxBudgetChange}
+      budgetWeight={budgetWeight}
+      onBudgetWeightChange={onBudgetWeightChange}
+      dateWeight={dateWeight}
+      onDateWeightChange={onDateWeightChange}
+      onCriterionWeightChange={onCriterionWeightChange}
+      onDeleteCriterion={onDeleteCriterion}
+      newCriterionLabel={newCriterionLabel}
+      onNewCriterionLabelChange={onNewCriterionLabelChange}
+      onAddCriterion={onAddCriterion}
+    />
+  );
+
+  const apartmentDetailPanel =
+    showApartmentPanel && activeApartmentDetails ? (
       <ApartmentDetailPanel
         apt={activeApartmentDetails}
         criteria={criteria}
@@ -713,7 +743,7 @@ export default function MainWorkspace({
         formatMonthHebrew={formatMonthHebrew}
         maxApartmentImages={maxApartmentImages}
         uploadingImage={uploadingImage}
-        onClose={() => onSelectApartment(null)}
+        onClose={handleCloseApartmentPanel}
         onAptCriteriaValueChange={onAptCriteriaValueChange}
         onNotesChange={onNotesChange}
         onNotesBlur={onNotesBlur}
@@ -721,55 +751,25 @@ export default function MainWorkspace({
         onImageDelete={onImageDelete}
         openLightbox={openLightbox}
       />
-    ) : (
-      <GlobalPreferencesPanel
-        criteria={criteria}
-        criteriaIcons={criteriaIcons}
-        monthsHebrew={monthsHebrew}
-        targetMonth={targetMonth}
-        onTargetMonthChange={onTargetMonthChange}
-        targetYear={targetYear}
-        onTargetYearChange={onTargetYearChange}
-        idealBudget={idealBudget}
-        onIdealBudgetChange={onIdealBudgetChange}
-        maxBudget={maxBudget}
-        onMaxBudgetChange={onMaxBudgetChange}
-        budgetWeight={budgetWeight}
-        onBudgetWeightChange={onBudgetWeightChange}
-        dateWeight={dateWeight}
-        onDateWeightChange={onDateWeightChange}
-        onCriterionWeightChange={onCriterionWeightChange}
-        onDeleteCriterion={onDeleteCriterion}
-        newCriterionLabel={newCriterionLabel}
-        onNewCriterionLabelChange={onNewCriterionLabelChange}
-        onAddCriterion={onAddCriterion}
-      />
-    ));
+    ) : null;
 
-  const renderSidebar = (idSuffix: string) => (
+  const desktopSidebarPanels =
+    activeTab === 'dashboard' &&
+    (apartmentDetailPanel ?? globalPreferencesPanel);
+
+  const renderDesktopSidebar = () => (
     <>
       <div className="p-4 flex flex-col gap-3 shrink-0">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl text-[#ca6a43]">🏹</span>
-            <div className="min-w-0">
-              <h1 className="text-base font-bold tracking-tight text-stone-900 font-sans truncate">
-                ApartmentHunter
-              </h1>
-              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-0.5 font-sans truncate">
-                שלום, {authUsername}
-              </p>
-            </div>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl text-[#ca6a43]">🏹</span>
+          <div>
+            <h1 className="text-base font-bold tracking-tight text-stone-900 font-sans">
+              ApartmentHunter
+            </h1>
+            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mt-0.5 font-sans">
+              שלום, {authUsername}
+            </p>
           </div>
-          <button
-            type="button"
-            id={`close-drawer-${idSuffix}`}
-            onClick={() => setMobileDrawerOpen(false)}
-            className="md:hidden shrink-0 w-8 h-8 rounded-lg bg-white/80 text-stone-600 font-bold shadow-sm"
-            aria-label="סגור תפריט"
-          >
-            ✕
-          </button>
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -798,7 +798,9 @@ export default function MainWorkspace({
         </nav>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3">{sidebarPanels}</div>
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3">
+        {desktopSidebarPanels}
+      </div>
 
       <div className="p-4 pt-0 shrink-0 border-t border-stone-300/40">
         <button
@@ -816,39 +818,150 @@ export default function MainWorkspace({
     <>
 <div className="flex flex-1 min-w-0 w-full min-h-screen">
       <aside className="hidden md:flex w-[19rem] shrink-0 sticky top-0 h-screen flex-col bg-[#ede5d3] shadow-[4px_0_24px_rgba(120,108,95,0.03)] overflow-hidden">
-        {renderSidebar('desktop')}
+        {renderDesktopSidebar()}
       </aside>
 
-      {mobileDrawerOpen && (
+      {mobilePanel === 'settings' && (
         <div className="md:hidden fixed inset-0 z-50">
           <button
             type="button"
             className="absolute inset-0 bg-stone-900/40 backdrop-blur-[2px]"
-            aria-label="סגור תפריט"
-            onClick={() => setMobileDrawerOpen(false)}
+            aria-label="סגור העדפות"
+            onClick={() => setMobilePanel(null)}
           />
           <aside
             className="absolute top-0 start-0 h-full w-[min(19rem,92vw)] flex flex-col bg-[#ede5d3] shadow-2xl animate-[drawerIn_0.25s_ease-out]"
             role="dialog"
             aria-modal="true"
-            aria-label="העדפות וניווט"
+            aria-label="העדפות גלובליות"
           >
-            {renderSidebar('mobile')}
+            <div className="p-4 flex items-center justify-between gap-2 shrink-0 border-b border-stone-300/40">
+              <div>
+                <h2 className="text-sm font-bold text-stone-900 font-sans">
+                  העדפות גלובליות
+                </h2>
+                <p className="text-[10px] text-stone-500 font-sans mt-0.5">
+                  תקציב, תאריך כניסה ומשקלי ציון
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobilePanel(null)}
+                className="shrink-0 w-8 h-8 rounded-lg bg-white/80 text-stone-600 font-bold shadow-sm"
+                aria-label="סגור"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3">
+              {activeTab === 'dashboard' ? (
+                globalPreferencesPanel
+              ) : (
+                <p className="text-xs text-stone-500 font-sans text-center py-8">
+                  העדפות זמינות בלוח הדירות
+                </p>
+              )}
+            </div>
+            <div className="p-4 pt-0 shrink-0 border-t border-stone-300/40">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="w-full text-[10px] font-bold text-stone-500 hover:text-stone-800 bg-white/50 px-3 py-1.5 rounded-lg transition font-sans"
+              >
+                התנתקות
+              </button>
+            </div>
           </aside>
+        </div>
+      )}
+
+      {mobilePanel === 'apartment' && apartmentDetailPanel && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <button
+            type="button"
+            className="absolute inset-0 bg-stone-900/40 backdrop-blur-[2px]"
+            aria-label="סגור פרטי דירה"
+            onClick={handleCloseApartmentPanel}
+          />
+          <div
+            className="relative w-full max-h-[92vh] flex flex-col bg-[#ede5d3] rounded-t-3xl shadow-2xl animate-[sheetUp_0.28s_ease-out]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="פרטי דירה"
+          >
+            <div className="flex justify-center pt-2 pb-1 shrink-0">
+              <span className="w-10 h-1 rounded-full bg-stone-300" aria-hidden />
+            </div>
+            <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-6">
+              {apartmentDetailPanel}
+            </div>
+          </div>
         </div>
       )}
 
       <button
         type="button"
-        onClick={() => setMobileDrawerOpen(true)}
-        className="md:hidden fixed bottom-5 end-5 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-[#ca6a43] text-white text-xl shadow-lg shadow-[#ca6a43]/30 border border-white/20 active:scale-95 transition"
-        aria-label="פתח העדפות וניווט"
+        onClick={() => {
+          setMobilePanel('settings');
+        }}
+        className={`md:hidden fixed bottom-5 end-5 z-40 flex items-center justify-center w-14 h-14 rounded-full text-white text-xl shadow-lg border border-white/20 active:scale-95 transition ${
+          mobilePanel === 'settings'
+            ? 'bg-stone-700 shadow-stone-700/30'
+            : 'bg-[#ca6a43] shadow-[#ca6a43]/30'
+        }`}
+        aria-label="פתח העדפות גלובליות"
+        aria-pressed={mobilePanel === 'settings'}
       >
         ⚙️
       </button>
 
-
       <main className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#f7f4eb] pb-20 md:pb-0">
+      <header className="md:hidden sticky top-0 z-30 bg-[#ede5d3] border-b border-stone-300/50 px-4 py-3 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg text-[#ca6a43]">🏹</span>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-stone-900 font-sans truncate">
+              ApartmentHunter
+            </p>
+            <p className="text-[9px] font-bold text-stone-500 uppercase tracking-wide font-sans truncate">
+              {authUsername}
+            </p>
+          </div>
+        </div>
+        <nav className="flex gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onTabChange('dashboard')}
+            className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg font-sans ${
+              activeTab === 'dashboard'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600'
+            }`}
+          >
+            לוח
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange('add')}
+            className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg font-sans ${
+              activeTab === 'add'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600'
+            }`}
+          >
+            הוספה
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-[10px] font-bold px-2 py-1.5 rounded-lg text-stone-500 font-sans"
+          >
+            יציאה
+          </button>
+        </nav>
+      </header>
+
+
         {activeTab === 'dashboard' ? (
           <>
               <div className="px-5 pt-4 pb-3">
