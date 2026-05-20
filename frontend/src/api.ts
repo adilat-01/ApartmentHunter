@@ -1,3 +1,10 @@
+import {
+  buildCreateApartmentBody,
+  buildCreateFromSourcesBody,
+  type CreateApartmentPayload,
+  type CreateFromSourcesPayload,
+} from './apartmentPayload';
+
 /** Backend origin; empty = same-origin (Vite dev proxy). Set via VITE_API_URL in production. */
 function normalizeApiBase(raw: string | undefined): string {
   const trimmed = raw?.trim();
@@ -116,11 +123,25 @@ async function apiFetch<T>(
     let detail = 'Request failed';
     try {
       const err = await response.json();
-      detail = err.detail || detail;
+      const raw = err.detail ?? err.message ?? detail;
+      if (Array.isArray(raw)) {
+        detail = raw
+          .map((item: { msg?: string; loc?: unknown[] }) => {
+            const field = Array.isArray(item.loc)
+              ? item.loc.filter((p) => p !== 'body').join('.')
+              : '';
+            return field ? `${field}: ${item.msg ?? 'invalid'}` : item.msg ?? 'invalid';
+          })
+          .join('; ');
+      } else if (typeof raw === 'string') {
+        detail = raw;
+      } else {
+        detail = JSON.stringify(raw);
+      }
     } catch {
       /* ignore */
     }
-    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    throw new Error(detail);
   }
 
   if (response.status === 204) {
@@ -200,52 +221,21 @@ export async function analyzePost(text: string) {
   });
 }
 
-export async function createApartment(payload: {
-  originalText: string;
-  extractedData: Apartment['extractedData'];
-  userNotes: string;
-  status?: string;
-  createdAt?: string;
-}): Promise<Apartment> {
+export async function createApartment(
+  payload: CreateApartmentPayload
+): Promise<Apartment> {
   return apiFetch<Apartment>('/api/apartments', {
     method: 'POST',
-    body: JSON.stringify({
-      originalText: payload.originalText,
-      extractedData: payload.extractedData,
-      userNotes: payload.userNotes,
-      status: payload.status ?? 'חדש',
-      createdAt: payload.createdAt,
-    }),
+    body: JSON.stringify(buildCreateApartmentBody(payload)),
   });
 }
 
-export async function createApartmentFromSources(payload: {
-  postText: string;
-  manual?: {
-    city?: string;
-    price?: number;
-    rooms?: number;
-    moveInDate?: string;
-    contactName?: string;
-    contactPhone?: string;
-    protected_space?: string;
-    pet_friendly?: string;
-    outdoor_space?: string;
-    furnished_status?: string;
-  };
-  userNotes?: string;
-  status?: string;
-  createdAt?: string;
-}): Promise<Apartment> {
+export async function createApartmentFromSources(
+  payload: CreateFromSourcesPayload
+): Promise<Apartment> {
   return apiFetch<Apartment>('/api/apartments/from-sources', {
     method: 'POST',
-    body: JSON.stringify({
-      postText: payload.postText,
-      manual: payload.manual ?? {},
-      userNotes: payload.userNotes ?? '',
-      status: payload.status ?? 'חדש',
-      createdAt: payload.createdAt,
-    }),
+    body: JSON.stringify(buildCreateFromSourcesBody(payload)),
   });
 }
 

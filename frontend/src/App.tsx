@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import AuthScreen from './AuthScreen';
 import ImageLightbox from './ImageLightbox';
 import MainWorkspace from './MainWorkspace';
+import { buildManualFromForm } from './apartmentPayload';
 import {
   type Apartment,
   type ApartmentImage,
@@ -379,31 +380,11 @@ export default function App() {
       return;
     }
 
-    const moveInDate =
-      manualForm.moveInMonth && manualForm.moveInYear
-        ? `${manualForm.moveInYear}-${manualForm.moveInMonth}`
-        : '';
-
     setIsLoading(true);
     try {
       const newApt = await createApartmentFromSources({
         postText: fbPostText.trim(),
-        manual: {
-          city: manualForm.city.trim() || undefined,
-          price: manualForm.price.trim()
-            ? Number(manualForm.price)
-            : undefined,
-          rooms: manualForm.rooms.trim()
-            ? Number(manualForm.rooms)
-            : undefined,
-          moveInDate: moveInDate || undefined,
-          contactName: manualForm.contactName.trim() || undefined,
-          contactPhone: manualForm.contactPhone.trim() || undefined,
-          protected_space: manualForm.protected_space || undefined,
-          pet_friendly: manualForm.pet_friendly || undefined,
-          outdoor_space: manualForm.outdoor_space || undefined,
-          furnished_status: manualForm.furnished_status || undefined,
-        },
+        manual: buildManualFromForm(manualForm),
         userNotes: manualForm.userNotes.trim(),
         status: 'חדש',
         createdAt: new Date().toISOString().split('T')[0],

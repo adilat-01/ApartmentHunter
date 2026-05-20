@@ -10,7 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from google import genai
 from google.genai import types
-from pydantic import BaseModel, Field
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from auth import (
@@ -79,6 +81,116 @@ def on_startup():
 # --- Pydantic schemas ---
 
 
+def _default_criteria_values() -> dict[str, str]:
+    return {
+        "protected_space": "ללא",
+        "pet_friendly": "לא",
+        "outdoor_space": "לא",
+        "furnished_status": "לא",
+    }
+
+
+def _coerce_optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        stripped = value.strip().replace(",", "")
+        if not stripped:
+            return None
+        try:
+            return int(float(stripped))
+        except ValueError:
+            return None
+    if isinstance(value, float):
+        if value != value:  # NaN
+            return None
+        return int(value)
+    if isinstance(value, int):
+        return value
+    return None
+
+
+def _coerce_optional_float(value: Any) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        stripped = value.strip().replace(",", "")
+        if not stripped:
+            return None
+        try:
+            return float(stripped)
+        except ValueError:
+            return None
+    if isinstance(value, (int, float)):
+        if value != value:
+            return None
+        return float(value)
+    return None
+
+
+def _coerce_str(value: Any, default: str = "") -> str:
+    if value is None:
+        return default
+    return str(value).strip()
+
+
+def _normalize_request_keys(data: Any, key_map: dict[str, str]) -> Any:
+    if not isinstance(data, dict):
+        return data
+    out = dict(data)
+    for old_key, new_key in key_map.items():
+        if old_key in out and new_key not in out:
+            out[new_key] = out.pop(old_key)
+    return out
+
+
+def _normalize_extracted_data_dict(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        return {}
+    raw = _normalize_request_keys(
+        data,
+        {
+            "contact_name": "contactName",
+            "contact_phone": "contactPhone",
+            "move_in_date": "moveInDate",
+            "criteria_values": "criteriaValues",
+        },
+    )
+    return {
+        "price": raw.get("price", 0),
+        "rooms": raw.get("rooms", 2.0),
+        "area": raw.get("area", ""),
+        "contactName": raw.get("contactName", ""),
+        "contactPhone": raw.get("contactPhone", ""),
+        "moveInDate": raw.get("moveInDate", ""),
+        "criteriaValues": raw.get("criteriaValues", {}),
+    }
+
+
+def _normalize_manual_dict(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        return {}
+    raw = _normalize_request_keys(
+        data,
+        {
+            "move_in_date": "moveInDate",
+            "contact_name": "contactName",
+            "contact_phone": "contactPhone",
+        },
+    )
+    return {k: v for k, v in raw.items() if v is not None and v != ""}
+
+
+def _normalize_criteria_values(raw: Any) -> dict[str, str]:
+    out = _default_criteria_values()
+    if not isinstance(raw, dict):
+        return out
+    for key, val in raw.items():
+        if val is not None and str(val).strip():
+            out[str(key)] = str(val).strip()
+    return out
+
+
 class CriteriaValuesSchema(BaseModel):
     protected_space: str = Field(
         description="Must be exactly: 'ממ\"ד', 'מקלט', or 'ללא'"
@@ -133,15 +245,106 @@ class UserResponse(BaseModel):
     username: str
 
 
+class ExtractedDataPayload(BaseModel):
+    """Normalized apartment fields stored in extracted_data_json."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    price: int = 0
+    rooms: float = 2.0
+    area: str = ""
+    contactName: str = ""
+    contactPhone: str = ""
+    moveInDate: str = "2026-07"
+    criteriaValues: dict[str, str] = Field(default_factory=_default_criteria_values)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_input(cls, data: Any) -> Any:
+        if isinstance(data, ExtractedDataPayload):
+            return data
+        return _normalize_extracted_data_dict(data)
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def validate_price(cls, value: Any) -> int:
+        return _coerce_optional_int(value) or 0
+
+    @field_validator("rooms", mode="before")
+    @classmethod
+    def validate_rooms(cls, value: Any) -> float:
+        return _coerce_optional_float(value) or 2.0
+
+    @field_validator("area", "contactName", "contactPhone", mode="before")
+    @classmethod
+    def validate_text_fields(cls, value: Any) -> str:
+        return _coerce_str(value)
+
+    @field_validator("moveInDate", mode="before")
+    @classmethod
+    def validate_move_in(cls, value: Any) -> str:
+        cleaned = _coerce_str(value)
+        return cleaned or "2026-07"
+
+    @field_validator("criteriaValues", mode="before")
+    @classmethod
+    def validate_criteria(cls, value: Any) -> dict[str, str]:
+        return _normalize_criteria_values(value)
+
+
 class ApartmentCreatePayload(BaseModel):
-    originalText: str
-    extractedData: dict
+    model_config = ConfigDict(extra="ignore")
+
+    originalText: str = ""
+    extractedData: ExtractedDataPayload | dict[str, Any] = Field(
+        default_factory=ExtractedDataPayload
+    )
     userNotes: str = ""
     status: str = "חדש"
     createdAt: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_input(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out = _normalize_request_keys(
+            data,
+            {
+                "original_text": "originalText",
+                "extracted_data": "extractedData",
+                "user_notes": "userNotes",
+                "created_at": "createdAt",
+            },
+        )
+        if "extractedData" in out:
+            out["extractedData"] = _normalize_extracted_data_dict(out["extractedData"])
+        return out
+
+    @field_validator("originalText", "userNotes", "status", mode="before")
+    @classmethod
+    def validate_trimmed_strings(cls, value: Any) -> str:
+        return _coerce_str(value)
+
+    @field_validator("extractedData", mode="before")
+    @classmethod
+    def validate_extracted_data(cls, value: Any) -> ExtractedDataPayload:
+        if isinstance(value, ExtractedDataPayload):
+            return value
+        return ExtractedDataPayload.model_validate(value or {})
+
+    @field_validator("createdAt", mode="before")
+    @classmethod
+    def validate_created_at(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        cleaned = _coerce_str(value)
+        return cleaned or None
+
 
 class ManualApartmentFields(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     city: str = ""
     price: int | None = None
     rooms: float | None = None
@@ -153,19 +356,115 @@ class ManualApartmentFields(BaseModel):
     outdoor_space: str = ""
     furnished_status: str = ""
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_input(cls, data: Any) -> Any:
+        if isinstance(data, ManualApartmentFields):
+            return data
+        return _normalize_manual_dict(data)
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def validate_price(cls, value: Any) -> int | None:
+        return _coerce_optional_int(value)
+
+    @field_validator("rooms", mode="before")
+    @classmethod
+    def validate_rooms(cls, value: Any) -> float | None:
+        return _coerce_optional_float(value)
+
+    @field_validator(
+        "city",
+        "moveInDate",
+        "contactName",
+        "contactPhone",
+        "protected_space",
+        "pet_friendly",
+        "outdoor_space",
+        "furnished_status",
+        mode="before",
+    )
+    @classmethod
+    def validate_optional_strings(cls, value: Any) -> str:
+        return _coerce_str(value)
+
 
 class ApartmentFromSourcesPayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     postText: str = ""
-    manual: ManualApartmentFields | None = None
+    manual: ManualApartmentFields | dict[str, Any] | None = None
     userNotes: str = ""
     status: str = "חדש"
     createdAt: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_input(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out = _normalize_request_keys(
+            data,
+            {
+                "post_text": "postText",
+                "user_notes": "userNotes",
+                "created_at": "createdAt",
+            },
+        )
+        if "manual" in out and out["manual"] is not None:
+            out["manual"] = _normalize_manual_dict(out["manual"])
+        return out
+
+    @field_validator("postText", "userNotes", "status", mode="before")
+    @classmethod
+    def validate_trimmed_strings(cls, value: Any) -> str:
+        return _coerce_str(value)
+
+    @field_validator("manual", mode="before")
+    @classmethod
+    def validate_manual(cls, value: Any) -> ManualApartmentFields | None:
+        if value is None:
+            return None
+        if isinstance(value, ManualApartmentFields):
+            return value
+        if isinstance(value, dict):
+            return ManualApartmentFields.model_validate(value)
+        return ManualApartmentFields()
+
+    @field_validator("createdAt", mode="before")
+    @classmethod
+    def validate_created_at(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        cleaned = _coerce_str(value)
+        return cleaned or None
+
 
 class ApartmentUpdatePayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     status: str | None = None
     userNotes: str | None = None
-    extractedData: dict | None = None
+    extractedData: ExtractedDataPayload | dict[str, Any] | None = None
+
+    @field_validator("status", "userNotes", mode="before")
+    @classmethod
+    def validate_optional_strings(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        cleaned = _coerce_str(value)
+        return cleaned or None
+
+    @field_validator("extractedData", mode="before")
+    @classmethod
+    def validate_extracted_data(
+        cls, value: Any
+    ) -> ExtractedDataPayload | None:
+        if value is None:
+            return None
+        if isinstance(value, ExtractedDataPayload):
+            return value
+        return ExtractedDataPayload.model_validate(value or {})
 
 
 class ImageResponse(BaseModel):
@@ -366,13 +665,17 @@ def _merge_manual_with_extracted(
     if m.furnished_status:
         criteria["furnished_status"] = m.furnished_status
 
+    base_price = _coerce_optional_int(base.get("price")) or 0
+    base_rooms = _coerce_optional_float(base.get("rooms")) or 2.0
+
     return {
-        "price": m.price if m.price is not None else base.get("price", 0),
-        "rooms": m.rooms if m.rooms is not None else base.get("rooms", 2),
-        "area": m.city.strip() or base.get("area", ""),
-        "contactName": m.contactName.strip() or base.get("contactName", ""),
-        "contactPhone": m.contactPhone.strip() or base.get("contactPhone", ""),
-        "moveInDate": m.moveInDate.strip() or base.get("moveInDate", "2026-07"),
+        "price": m.price if m.price is not None else base_price,
+        "rooms": m.rooms if m.rooms is not None else base_rooms,
+        "area": m.city.strip() or _coerce_str(base.get("area")),
+        "contactName": m.contactName.strip() or _coerce_str(base.get("contactName")),
+        "contactPhone": m.contactPhone.strip() or _coerce_str(base.get("contactPhone")),
+        "moveInDate": m.moveInDate.strip()
+        or _coerce_str(base.get("moveInDate"), "2026-07"),
         "criteriaValues": criteria,
     }
 
@@ -385,13 +688,19 @@ def create_apartment(
 ):
     from datetime import date
 
+    extracted = (
+        payload.extractedData.model_dump()
+        if isinstance(payload.extractedData, ExtractedDataPayload)
+        else ExtractedDataPayload.model_validate(payload.extractedData).model_dump()
+    )
+
     apt = Apartment(
         user_id=current_user.id,
         created_at=payload.createdAt or date.today().isoformat(),
-        status=payload.status,
-        original_text=payload.originalText,
-        extracted_data_json=json.dumps(payload.extractedData, ensure_ascii=False),
-        user_notes=payload.userNotes,
+        status=payload.status or "חדש",
+        original_text=payload.originalText or "",
+        extracted_data_json=json.dumps(extracted, ensure_ascii=False),
+        user_notes=payload.userNotes or "",
     )
     db.add(apt)
     db.commit()
@@ -461,9 +770,12 @@ def update_apartment(
     if payload.userNotes is not None:
         apt.user_notes = payload.userNotes
     if payload.extractedData is not None:
-        apt.extracted_data_json = json.dumps(
-            payload.extractedData, ensure_ascii=False
+        extracted = (
+            payload.extractedData.model_dump()
+            if isinstance(payload.extractedData, ExtractedDataPayload)
+            else ExtractedDataPayload.model_validate(payload.extractedData).model_dump()
         )
+        apt.extracted_data_json = json.dumps(extracted, ensure_ascii=False)
 
     db.commit()
     db.refresh(apt)
