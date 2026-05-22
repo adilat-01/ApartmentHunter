@@ -1,4 +1,5 @@
 ApartmentHunter 🏡
+https://apartment-hunter-ecru.vercel.app/
 ApartmentHunter is a Full-Stack MVP designed to streamline and analyze scattered apartment listings from social media. Instead of making decisions based on intuition, users can paste raw listing text to extract key data and view a personalized compatibility score based on structured filters.
 
 🎯 Project Goal & Scope
