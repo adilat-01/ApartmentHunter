@@ -1,35 +1,78 @@
-ApartmentHunter 🏡
-https://apartment-hunter-ecru.vercel.app/
-ApartmentHunter is a Full-Stack MVP designed to streamline and analyze scattered apartment listings from social media. Instead of making decisions based on intuition, users can paste raw listing text to extract key data and view a personalized compatibility score based on structured filters.
+# ApartmentHunter
 
-🎯 Project Goal & Scope
-The objective of this project was to build a functional Minimum Viable Product (MVP) to practice product characterization, prompt engineering, and full-stack architecture.
+Live: [apartment-hunter-ecru.vercel.app](https://apartment-hunter-ecru.vercel.app)
 
-The entire codebase was generated and managed utilizing the Cursor AI Agent, acting as a development coworker. The focus was on driving development through structured requirements (PRD), system isolation, and debugging technical constraints.
+A full-stack MVP that turns messy apartment listing text (Facebook / Yad2 style posts) into structured data, then ranks listings against personal filters.
 
-⚙️ Architecture & Tech Stack
-Frontend: Built with React, featuring responsive design with isolated desktop and mobile layouts. Deployed on Vercel.
+Paste a listing → Gemini extracts price, rooms, mamad, entry date, and more → you get a match score you can actually compare.
 
-Backend: Powered by FastAPI (Python) to handle API requests and business logic. Deployed on Render.
+## Stack
 
-AI Core: Integrated with Gemini API using structured Prompt Engineering to parse raw text and return exact JSON objects containing parameters like price, rooms, safety shelter (Mamad), and entry dates.
+| Layer | Tech |
+|-------|------|
+| Frontend | React 19, Vite, Tailwind, Playwright e2e |
+| Backend | FastAPI (Python) |
+| AI | Gemini (structured JSON extraction) |
+| Database | SQLite (MVP) |
+| Deploy | Vercel (frontend) · Render (API) |
 
-Database: SQLite for local user data and apartment indexing.
+## Repo layout
 
-Security: Implemented password encryption via Hashing, environment variables protection for API keys (.env), and backend Session Isolation to prevent data cross-contamination on demo accounts.
+```
+├── main.py              # FastAPI app
+├── auth.py              # JWT + password hashing
+├── database.py          # SQLAlchemy models
+├── seed_demo.py         # Demo accounts
+├── frontend/            # React client
+├── Apartment_examp/     # Sample listing images
+├── uploads/             # User photos (demo)
+├── PRD.md               # Product requirements
+└── .env.example         # Required env vars (no secrets)
+```
 
-⚠️ Current MVP Limitations
-Ephemeral Storage: The database uses SQLite on Render's free tier, meaning data resets when the server restarts or rebuilds.
+## Quick start
 
-Cold Start: Due to free tier hosting limits, the server goes to sleep when inactive, causing an initial ~30-second delay on the first request.
+**Backend**
 
-Local Media: Sample images are stored locally in static assets rather than on a dedicated image cloud provider.
+```bash
+python -m venv venv
+venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+copy .env.example .env         # then fill NEW_GEM_KEY
+uvicorn main:app --reload
+```
 
-🚀 Future Roadmap & Scaling
-Persistent DB: Migrate from SQLite to a managed PostgreSQL instance to store persistent user data.
+**Frontend**
 
-Cloud Storage: Connect to AWS S3 to allow live user photo uploads for apartment visits.
+```bash
+cd frontend
+npm install
+copy .env.example .env         # optional: VITE_API_URL for production API
+npm run dev
+```
 
-Performance: Upgrade hosting tiers to eliminate server spin-up delays (Cold Starts) and optimize API response times.
+## Environment variables
 
-The live app is up, fully responsive on mobile, and features interactive demo accounts.
+| Variable | Where | Purpose |
+|----------|--------|---------|
+| `NEW_GEM_KEY` | backend `.env` | Gemini API key (never `VITE_` / public) |
+| `JWT_SECRET_KEY` | backend `.env` | Token signing (set a strong value in production) |
+| `VITE_API_URL` | `frontend/.env` | API origin in production |
+
+## Security
+
+- Real keys live only in `.env` (gitignored)
+- Copy `.env.example` — it contains placeholders only
+- Passwords are hashed with bcrypt; sessions are isolated per user
+
+If a key was ever committed, rotate it in Google AI Studio and update Render / local `.env`.
+
+## MVP limits
+
+- SQLite on Render’s free tier resets when the instance sleeps or rebuilds
+- First request after idle can take ~30 seconds (cold start)
+- Images are stored on the server, not a CDN
+
+## License
+
+Personal portfolio project.

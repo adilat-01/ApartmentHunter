@@ -1,7 +1,4 @@
-# Python
-__pycache__/
-*.pyc
-venv/
+# Secrets — never commit
 .env
 .env.*
 !.env.example
@@ -9,10 +6,30 @@ frontend/.env
 frontend/.env.*
 !frontend/.env.example
 
-# Databases
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Databases & local uploads cache
 *.db
 apartment_hunter.db
 
-# Frontend Dependencies
+# Personal / local-only folders
+important_url/
+קאבר/
+*.url
+
+# Frontend
 node_modules/
 dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
